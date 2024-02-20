@@ -37,11 +37,24 @@ const Home = () => {
         navigate('/',{ replace: true })
     }
 
+    const handleJoinRoom = useCallback((data) => {
+        const {name, room} = data;
+        navigate(`/room/${room}`)
+    })
+
     useEffect(() => {
         if(user){
           setName(user.name)
         }
       }, [])
+
+    useEffect(() => {
+        socket.on('room:join', handleJoinRoom);
+        return () =>{
+            socket.off("room:join", handleJoinRoom);
+        }
+    }, [socket,handleJoinRoom])
+    
 
     
     if(!user) {
@@ -65,9 +78,6 @@ const Home = () => {
             </>
         )
     }
-    
-    
-
 
   return (
     <div>
@@ -88,7 +98,6 @@ const Home = () => {
                 </div>
             </div>
             <div>
-                
             </div>
         </div>
       </div>

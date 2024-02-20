@@ -4,6 +4,7 @@ import { Routes,Route, useNavigate} from "react-router-dom"
 import Login from './container/Login';
 import Home from './container/Home';
 import { fetchUser } from './utils/fetchUser';
+import Room from './container/Room';
 
 
 
@@ -24,6 +25,7 @@ function App() {
     <Routes>
       <Route path='/login' element={<Login />}/>
       <Route path='/' element={<Home />}/>
+      <Route path='/room/:roomId' element={<Room />}/>
     </Routes>
 
     </>
