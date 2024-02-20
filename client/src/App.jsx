@@ -3,18 +3,17 @@ import './App.css'
 import { Routes,Route, useNavigate} from "react-router-dom"
 import Login from './container/Login';
 import Home from './container/Home';
+import { fetchUser } from './utils/fetchUser';
 
 
 
 function App() {
 
-  const [user, setUser] = useState();
   const navigate = useNavigate();
-  const userInfo = localStorage.getItem('user') !== 'undefined' ? JSON.parse(localStorage.getItem('user')) : localStorage.clear();
-  console.log(userInfo)
+  const user = fetchUser();
+  console.log(user)
   useEffect(() => {
-    setUser(userInfo)
-    if(!userInfo) navigate('/login'); 
+    if(!user) navigate('/login'); 
   }, [])
   
 
@@ -24,7 +23,7 @@ function App() {
     <>
     <Routes>
       <Route path='/login' element={<Login />}/>
-      <Route path='/home' element={<Home />}/>
+      <Route path='/' element={<Home />}/>
     </Routes>
 
     </>

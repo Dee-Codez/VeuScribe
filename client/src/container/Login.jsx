@@ -20,9 +20,14 @@ const Login = () => {
         }
     }
 
+    const skipLogin = () => {
+        localStorage.clear();
+        navigate('/');
+    }
+
   return (
     <div className='text-white text-3xl'>
-        <div className='flex justify-center h-screen items-center'>
+        <div className='flex flex-col gap-5 justify-center h-screen items-center'>
             <GoogleLogin
                 render={(renderProps) => (
                 <button
@@ -38,6 +43,11 @@ const Login = () => {
                 onError={responseGoogle}
                 useOneTap
             />
+            <div className='m-4 cursor-pointer' onClick={skipLogin}>
+                <div className='bg-red-400 px-6 py-3 rounded-2xl'>
+                    Skip
+                </div>
+            </div>
         </div>
       
     </div>
