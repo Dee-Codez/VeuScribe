@@ -17,9 +17,6 @@ function App() {
     if(!user) navigate('/login'); 
   }, [])
   
-
-  
-
   return (
     <>
     <Routes>
@@ -27,7 +24,6 @@ function App() {
       <Route path='/' element={<Home />}/>
       <Route path='/room/:roomId' element={<Room />}/>
     </Routes>
-
     </>
   )
 }

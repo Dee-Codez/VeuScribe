@@ -50,7 +50,7 @@ const Home = () => {
     const handleJoinRoom = useCallback((data) => {
         const {name, room} = data;
         navigate(`/room/${room}`)
-    })
+    },[navigate])
 
     const initAudioVideo = useCallback(async()=>{
         const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});

@@ -2,11 +2,15 @@ import React, { useCallback, useEffect, useState } from 'react'
 import ReactPlayer from 'react-player'
 import { useSocket } from '../utils/SocketProvider'
 import peer from '../utils/peer'
+import { fetchUser } from '../utils/fetchUser'
 
 
 const Room = () => {
 
     const socket = useSocket();
+    const user = fetchUser();
+    const [remName, setRemName] = useState("");
+    const [hostName, sethostName] = useState("");
     const [remoteSocketId, setRemoteSocketId] = useState(null);
     const [myStream, setMyStream] = useState(null);
     const [remoteStream, setRemoteStream] = useState(null);
@@ -18,8 +22,10 @@ const Room = () => {
         setMyStream(stream);
     },[remoteSocketId,socket]);
 
-    const handleIncomingCall = useCallback(async({from,offer})=>{
+    const handleIncomingCall = useCallback(async({from,host,offer})=>{
         setRemoteSocketId(from);
+        console.log(host);
+        sethostName(host);
         console.log(from,offer);
         const ans = await peer.getAnswer(offer);
         socket.emit("call:accepted",{to:from,ans});
@@ -27,22 +33,30 @@ const Room = () => {
 
     const handleUserJoined = useCallback(({name,id}) => {
         console.log(`${name} joined`);
+        setRemName(name);
         setRemoteSocketId(id);
     },[]);
 
-    const handleCallAccepted = useCallback(({from,ans})=>{
-        peer.setLocalDescription(ans);
-        console.log(`Call accepted `)
+    const sendStreams = useCallback(() => {
         for(const track of myStream.getTracks()) {
             peer.peer.addTrack(track,myStream);
         }
     },[myStream])
 
+    const handleCallAccepted = useCallback(({from,ans})=>{
+        sethostName(from);
+        console.log(from);
+        peer.setLocalDescription(ans);
+        console.log(`Call accepted `);
+        sendStreams();
+    },[sendStreams])
+
     useEffect(() => {
       
         peer.peer.addEventListener('track', async ev =>{
             const remoteStream = ev.streams;
-            setRemoteStream(remoteStream);
+            console.log("Got Tracks");
+            setRemoteStream(remoteStream[0]);
         })
    
     }, [])
@@ -52,12 +66,12 @@ const Room = () => {
         socket.emit('peer:nego:needed',{offer, to:remoteSocketId});
     },[remoteSocketId, socket]);
 
-    const handleNegoNeededIncoming = useCallback( ({from,offer}) =>{
-        const ans = peer.getAnswer(offer);
+    const handleNegoNeededIncoming = useCallback( async ({from,offer}) =>{
+        const ans = await peer.getAnswer(offer);
         socket.emit("peer:nego:done",{to:from,ans});
     },[socket]);
 
-    const handleNegoNeedFinal = useCallback(async(ans)=>{
+    const handleNegoNeedFinal = useCallback(async({ans})=>{
         await peer.setLocalDescription(ans);
     },[])
 
@@ -93,26 +107,44 @@ const Room = () => {
                     <div className='text-3xl'>Meeting ID : {}</div>
                     <div className='text-center '>{remoteSocketId? 'Connected' : 'Waiting For Others To Join'}</div>
                     {remoteSocketId && (
-                        <>
-                            <div onClick={handleCallUser} className='px-4 py-2 border-2 border-green-400 rounded-md'>Start</div>
-                        </>
+                        <div className='flex flex-row gap-5'>
+                            <div onClick={handleCallUser} className='px-4 py-2 border-2 border-green-400 rounded-md'>Join</div>
+                            <button onClick={sendStreams} className='z-10 p-2 bg-black/30 cursor-pointer'>Send Stream</button>
+                        </div>
                     )}
-                    {myStream && (
-                        <>
-                            <div className=' relative rounded-full'>
-                                Local Stream : 
-                                <ReactPlayer className="absolute top-0 left-0 overflow-hidden rounded-xl" playing muted url={myStream}/>
-                            </div>
-                        </>
-                    )}
-                    {remoteStream && (
-                        <>
-                            <div className=' relative rounded-full'>
-                                Remote Stream
-                                <ReactPlayer className="absolute top-0 left-0 overflow-hidden rounded-xl" playing muted url={remoteStream}/>
-                            </div>
-                        </>
-                    )}
+                    <div className='flex flex-wrap gap-[500px]'>
+                        {myStream && (
+                            <>
+                                <div className='relative'>
+                                    Local
+                                    <div className='absolute top-0 left-0 z-10'>
+                                        <ReactPlayer className=" overflow-hidden rounded-xl" playing muted url={myStream}/>
+                                        <div className='bg-black/20 px-2 py-1 absolute bottom-0 right-20 z-20'> 
+                                        {user?user.name:hostName}
+                                        </div>
+                                </div>
+                                </div>
+                            </>
+                        )}
+                        {remoteStream && (
+                            <>
+                                <div className='relative'>
+                                    Remote
+                                    <div className='absolute top-0 left-0 z-10'>
+                                        <ReactPlayer className=" overflow-hidden rounded-xl" playing muted url={remoteStream}/>
+                                        <div className='bg-black/20 px-2 py-1 absolute bottom-0 right-20 z-20'> 
+                                            {remName?remName:hostName}
+                                        </div>
+                                </div>
+                                </div>
+                            </>
+                        )}
+                        <div className=''> 
+                         
+                         </div>
+                    </div>
+                    
+                    
                 </div>
                 
 
