@@ -2,11 +2,21 @@ import { useState, useEffect, useCallback} from 'react'
 import { fetchUser } from '../utils/fetchUser'
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../utils/SocketProvider';
+import { AiOutlineAudio } from "react-icons/ai";
+import { AiOutlineAudioMuted } from "react-icons/ai";
+import { CiVideoOn } from "react-icons/ci";
+import { CiVideoOff } from "react-icons/ci";
+import ReactPlayer from 'react-player'
+
 
 const Home = () => {
     const user = fetchUser();
     const [name, setName] = useState("");
     const [room, setRoom] = useState("");
+    const [myStream, setMyStream] = useState(null);
+    const [audio, setAudio] = useState(true);
+    const [video, setVideo] = useState(true);
+
     const socket = useSocket()
     const navigate = useNavigate();
 
@@ -42,10 +52,24 @@ const Home = () => {
         navigate(`/room/${room}`)
     })
 
+    const initAudioVideo = useCallback(async()=>{
+        const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+        setMyStream(stream);
+    },[]);
+
+    const handleAudioVideo = useCallback(async (aud,vid)=>{
+        (aud)?setAudio(!audio):"";
+        (vid)?setVideo(!video):"";
+        console.log(audio,video);
+        const stream = await navigator.mediaDevices.getUserMedia({audio: audio, video: video});
+        setMyStream(stream);   
+    },[audio,video])
+
     useEffect(() => {
         if(user){
           setName(user.name)
         }
+        initAudioVideo();
       }, [])
 
     useEffect(() => {
@@ -85,11 +109,17 @@ const Home = () => {
         <div className='relative flex justify-center text-white'>
             <div onClick={logout} className='absolute top-5 cursor-pointer right-10 p-5 bg-white/30'>Logout</div>
             <div className='flex flex-col mt-40 h-screen'>
-                <div className='relative border-2 h-[200px] rounded-md border-white/30'>
-                    <div></div>
+                <div className='relative border py-2 shadow-md shadow-white/10 w-[500px] rounded-md border-white/30'>
+                    {myStream && 
+                        <ReactPlayer width={"500px"} className="rounded-lg" playing muted url={myStream}/>
+                    }
                     <div className='absolute bottom-0 bg-black/10 px-2 py-1 z-10 right-0'>
                         {name}
                     </div>
+                </div>
+                <div className='flex justify-center mt-3 gap-5'>
+                    <div className='p-3 rounded-full bg-black/20' onClick={()=>{handleAudioVideo(true,false)}} >{audio?<AiOutlineAudio fontSize={30} />: <AiOutlineAudioMuted fontSize={30} />}</div>
+                    <div className='p-3 rounded-full bg-black/20' onClick={()=>{handleAudioVideo(false,true)}} >{video?<CiVideoOn fontSize={30} />: <CiVideoOff fontSize={30} />}</div>
                 </div>
                 <div className='mt-10 flex items-center gap-3'>
                     <label htmlFor="meetingid">Meeting ID : </label>
