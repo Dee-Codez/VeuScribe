@@ -6,11 +6,10 @@ const PORT = process.env.PORT || 5000;
 
 const io = new Server(8000,{
     cors: true,
-} );
+});
 
 const nameToSocketidMap = new Map();
 const socketIdToNameMap = new Map();
-
 
 io.on('connection', (socket) => {
     console.log(`Connection established`,socket.id);
@@ -21,7 +20,7 @@ io.on('connection', (socket) => {
         io.to(room).emit('user:joined',{name,id:socket.id});
         socket.join(room);
         io.to(socket.id).emit("room:join",data);
-    })
+    });
 
     socket.on("user:call", ({ to, offer }) => {
         const hostname = socketIdToNameMap.get(socket.id);
@@ -36,12 +35,22 @@ io.on('connection', (socket) => {
     socket.on("peer:nego:needed",({to,offer})=>{
         // console.log("peer:nego:needed",offer);
         io.to(to).emit("peer:nego:needed",{from:socket.id, offer});
-    })
+    });
 
     socket.on("peer:nego:done",({to,ans})=>{
         // console.log("peer:nego:done",ans);
         io.to(to).emit("peer:nego:final",{from:socket.id, ans})
     });
+
+    socket.on("send:icecandidate",({data,to})=>{
+        socket.to(to).emit("receive:icecandidate",data.candidate);
+    })
+
+    
+
+    socket.on("query:call",({to,query})=>{
+        const scribeQuery = query;
+    })
 })
 
 // httpServer.listen(PORT, () => console.log("Server listening on port " + PORT));

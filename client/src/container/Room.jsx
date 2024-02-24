@@ -20,7 +20,7 @@ const Room = () => {
         const offer = await peer.getOffer();
         socket.emit("user:call",{to:remoteSocketId, offer});
         setMyStream(stream);
-    },[remoteSocketId,socket]);
+    },[remoteSocketId, socket]);
 
     const handleIncomingCall = useCallback(async({from,host,offer})=>{
         setRemoteSocketId(from);
@@ -43,23 +43,34 @@ const Room = () => {
         }
     },[myStream])
 
+    const sendIceCandidates = useCallback((data)=>{
+        console.log(data,`icecandidates sent`);
+            socket.emit("send:icecandidate",{data,to:remoteSocketId});
+    },[remoteSocketId, socket])
+
     const handleCallAccepted = useCallback(({from,ans})=>{
         sethostName(from);
         console.log(from);
+
+        
         peer.setLocalDescription(ans);
+
         console.log(`Call accepted `);
         sendStreams();
     },[sendStreams])
 
     useEffect(() => {
-      
         peer.peer.addEventListener('track', async ev =>{
             const remoteStream = ev.streams;
             console.log("Got Tracks");
+            console.log(remoteStream);
             setRemoteStream(remoteStream[0]);
         })
-   
     }, [])
+
+    const handleRcvCandidate = useCallback(({candidate})=>{
+        peer.peer.addIceCandidate(candidate);
+    },[]);
 
     const handleNegoNeeded = useCallback(async () =>{
         const offer = await peer.getOffer();
@@ -76,11 +87,13 @@ const Room = () => {
     },[])
 
     useEffect(() => {
+        peer.peer.addEventListener("icecandidate",sendIceCandidates);
       peer.peer.addEventListener('negotiationneeded', handleNegoNeeded);
       return () => {
+        peer.peer.removeEventListener("icecandidate",sendIceCandidates);
         peer.peer.removeEventListener('negotiationneeded',handleNegoNeeded);
       }
-    }, [handleNegoNeeded]);
+    }, [handleNegoNeeded, sendIceCandidates]);
     
     
 
@@ -90,14 +103,16 @@ const Room = () => {
         socket.on('call:accepted', handleCallAccepted);
         socket.on('peer:nego:needed', handleNegoNeededIncoming);
         socket.on("peer:nego:final", handleNegoNeedFinal);
+        socket.on("receive:icecandidate", handleRcvCandidate);
         return () => {
             socket.off('user:joined', handleUserJoined);
             socket.off('incoming:call', handleIncomingCall);
             socket.off('call:accepted', handleCallAccepted);
             socket.off('peer:nego:needed', handleNegoNeededIncoming);
             socket.off("peer:nego:final", handleNegoNeedFinal);
+            socket.off("receive:icecandidate", handleRcvCandidate);
         }
-    },[socket, handleUserJoined, handleIncomingCall, handleCallAccepted, handleNegoNeededIncoming, handleNegoNeedFinal]);
+    },[socket, handleUserJoined, handleIncomingCall, handleCallAccepted, handleNegoNeededIncoming, handleNegoNeedFinal, handleRcvCandidate]);
   return (
     <div>
       <div className='flex justify-center'>
@@ -112,13 +127,13 @@ const Room = () => {
                             <button onClick={sendStreams} className='z-10 p-2 bg-black/30 cursor-pointer'>Send Stream</button>
                         </div>
                     )}
-                    <div className='flex flex-wrap gap-[500px]'>
+                    <div className='flex md:flex-row flex-col gap-[500px]'>
                         {myStream && (
                             <>
                                 <div className='relative'>
-                                    Local
+                                    
                                     <div className='absolute top-0 left-0 z-10'>
-                                        <ReactPlayer className=" overflow-hidden rounded-xl" playing muted url={myStream}/>
+                                        <ReactPlayer style={{borderRadius: '5px', overflow: 'hidden'}} className=" overflow-hidden rounded-xl" playing muted url={myStream}/>
                                         <div className='bg-black/20 px-2 py-1 absolute bottom-0 right-20 z-20'> 
                                         {user?user.name:hostName}
                                         </div>
@@ -129,9 +144,9 @@ const Room = () => {
                         {remoteStream && (
                             <>
                                 <div className='relative'>
-                                    Remote
+                                    
                                     <div className='absolute top-0 left-0 z-10'>
-                                        <ReactPlayer className=" overflow-hidden rounded-xl" playing muted url={remoteStream}/>
+                                        <ReactPlayer className=" overflow-hidden rounded-xl" playing url={remoteStream}/>
                                         <div className='bg-black/20 px-2 py-1 absolute bottom-0 right-20 z-20'> 
                                             {remName?remName:hostName}
                                         </div>
@@ -140,7 +155,7 @@ const Room = () => {
                             </>
                         )}
                         <div className=''> 
-                         
+                        
                          </div>
                     </div>
                     

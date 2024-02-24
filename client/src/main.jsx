@@ -5,6 +5,10 @@ import { BrowserRouter as Router } from 'react-router-dom'
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import './index.css'
 import { SocketProvider } from './utils/SocketProvider.jsx';
+import 'core-js/stable'
+import "regenerator-runtime/runtime.js";
+import "regenerator-runtime";
+
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
