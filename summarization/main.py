@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 import requests
 import uvicorn
+from generate_keywords import get_keywords
+from stable_diffusion import image_generation
 
 app = FastAPI()
 
@@ -36,4 +38,24 @@ async def summarize(data:dict):
     else:
         raise HTTPException(status_code=response.status_code,detail="Failed to summarize text")
         
+# Add the keyword endpoint   
+@app.post('/keywords')
+async def keyword(data:dict):
+    if not data:
+        raise HTTPException(status_code=400, detail="No data provided")
+    
+    input_text = data.get("text","")
+    keywords_size = int(data.get("keywords_size",""))
+    keywords = get_keywords(input_text,keywords_size)
+    return JSONResponse(status_code=200,content={"keywords": keywords})
+
+@app.post('/generate_image')
+async def generate_image(data:dict):
+    if not data:
+        raise HTTPException(status_code=400, detail="No data provided")
+    text = data.get("prompt","")
+    photo = image_generation(text)
+    return JSONResponse(status_code=200,content={"message": "Image generated successfully","image": photo})
+    
+    
 uvicorn.run(app)
