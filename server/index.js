@@ -1,12 +1,24 @@
 // const server = require("http").createServer(app);
 // const cors = require('cors');
 // const { createServer } = require("https");
-const { Server } = require("socket.io");
-const PORT = process.env.PORT || 5000;
+const express = require('express');
+const app = express();
+const http = require('http');
+const server = http.createServer(app);
 
-const io = new Server(8000,{
-    cors: true,
+const PORT = process.env.PORT || 8000;
+
+app.get('/', (req, res) => {
+    res.send('<h1>Hello world</h1>');
 });
+  
+server.listen(PORT, () => {
+    console.log(`listening on *:${PORT}`);
+});
+
+
+const { Server } = require("socket.io");
+const io = new Server(server,{cors: true});
 
 const nameToSocketidMap = new Map();
 const socketIdToNameMap = new Map();
