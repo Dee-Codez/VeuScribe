@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.23.9",
+    "@picovoice/cheetah-react": "^2.0.0",
+    "@picovoice/web-voice-processor": "^4.0.8",
     "@react-oauth/google": "^0.12.1",
     "core-js": "^3.36.0",
     "jwt-decode": "^4.0.0",
@@ -21,7 +23,6 @@
     "react-player": "^2.14.1",
     "react-router-dom": "^6.22.1",
     "react-speakup": "^1.0.0",
-    "react-speech-kit": "^3.0.1",
     "react-speech-recognition": "^3.10.0",
     "regenerator-runtime": "^0.14.1",
     "simple-peer": "^9.11.1",
