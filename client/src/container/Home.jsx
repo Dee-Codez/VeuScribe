@@ -10,6 +10,8 @@ import ReactPlayer from 'react-player';
 import { useVoiceToText } from "react-speakup";
 import { MdClosedCaption } from "react-icons/md";
 import { MdClosedCaptionDisabled } from "react-icons/md";
+import { MdExpandCircleDown } from "react-icons/md";
+
 
 const Home = () => {
     const user = fetchUser();
@@ -18,6 +20,7 @@ const Home = () => {
     const [myStream, setMyStream] = useState(null);
     let [audio, setAudio] = useState(true);
     let [video, setVideo] = useState(true);
+    let [isScript, setIsScript] = useState(false);
     
     const videoRef = useRef(null);
 
@@ -30,10 +33,15 @@ const Home = () => {
     mic.interimResults = true;
     mic.lang = 'en-US';
 
+    const notes = useRef('');
     let [isListening, setIsListening] = useState(false);
-    const [note, setNote] = useState(null);
+    let [note, setNote] = useState(notes.current);
     const [savedNotes, setSavedNotes] = useState([]);
-
+   
+    const toggleIsScript = () => {
+        isScript = !isScript;
+        setIsScript(isScript);
+    }
 
     const toggleTranscript = () => {
         isListening = !isListening;
@@ -56,16 +64,20 @@ const Home = () => {
     mic.onstart = () => {
         console.log('Mics on')
         }
+    mic.onsoundend = () => {
+        console.log('Mic Sound Stopped')
+    }
     mic.onspeechend = () => {
-        console.log('Mic Stopped')
+        console.log('Mic Speech Stopped')
     }
     mic.onresult = event => {
         const transcript = Array.from(event.results)
         .map(result => result[0])
         .map(result => result.transcript)
         .join('')
-        console.log(transcript)
+        console.log(transcript);
         setNote(transcript);
+        notes.current=transcript;
         mic.onerror = event => {
             console.log(event.error)
         }
@@ -73,8 +85,10 @@ const Home = () => {
       
     
       const handleSaveNote = () => {
-        setSavedNotes([...savedNotes, note])
-        setNote('')
+        setSavedNotes([...savedNotes, notes.current]);
+        note='';
+        notes.current='';
+        setNote('');
       }
 
     const toggleAudio = () => {
@@ -88,7 +102,6 @@ const Home = () => {
         setVideo(video);
         getVideo(audio,video);
     }
-
 
     const handleAudioVideo = (aud,vid) =>{
         console.log("Before Toggle : ",audio,video);
@@ -181,16 +194,17 @@ const Home = () => {
         }
     }, [socket,handleJoinRoom]);
 
-    // useEffect(() => {
-    //   const interval = setInterval(() =>{
-    //     if(isListening){
-    //         toggleTranscript();
-    //         handleSaveNote();
-    //         toggleTranscript();
-    //     }
-    //   },5000);
-    //   return () => clearInterval(interval);
-    // }, [note])
+    useEffect(() => {
+      const interval = setInterval(() =>{
+        if(isListening){
+            handleListen();
+            toggleTranscript();
+            handleSaveNote(); 
+            toggleTranscript();
+        }
+      },5000);
+      return () => clearInterval(interval);
+    }, [note])
     
 
     useEffect(() => {
@@ -256,21 +270,27 @@ const Home = () => {
                             <div className="flex items-center mt-10 gap-2 flex-col">
                                 <div className="flex flex-col items-center">
                                     <div className='flex gap-5'>
-                                        <button className='p-2 bg-white/30' onClick={()=>{toggleTranscript()}}>
+                                        <button key={isListening} className='p-2 bg-white/30' onClick={()=>{toggleTranscript()}}>
                                             {isListening ? "Transcript-On": "Transcript-Off"}
                                         </button>
                                     </div>
-                                    <div className='flex items-center' key={note}>
+                                    <div className='flex items-center mt-3' >
                                         <p>Dialogue:</p>
-                                        {note?<p className='bg-black/10 p-2 text-md'>{note}</p>:""}
+                                        {note?<p className='bg-black/10 p-2 text-md' key={note}>{note}</p>:""}
                                     </div>
                                     
                                 </div>
-                                <div className="box mt-5">
-                                    <h2 className='text-xl font-bold'>Whole Transcript : </h2>
-                                    {savedNotes.map(n => (
-                                        <p key={n}>{n}</p>
-                                    ))}
+                                <div className="relative mt-3">
+                                    <div className='flex flex-row gap-2 items-center justify-center'>
+                                        <h2 className='text-xl font-bold'>Whole Transcript : </h2>
+                                        <div className='cursor-pointer' onClick={()=>{toggleIsScript()}}>{isScript? <MdExpandCircleDown className='rotate-180' fontSize={30} /> : <MdExpandCircleDown fontSize={30} />}</div>
+                                    </div>
+                                    <div className='mt-2 leading-7'>
+                                        {isScript && savedNotes.map((n,index) => (
+                                            <p key={index}>{n}</p>
+                                        ))}
+                                    </div>
+                                    
                                 </div>
                             </div>
                         </>
