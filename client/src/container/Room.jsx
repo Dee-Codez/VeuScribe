@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState,useRef } from 'react'
 import ReactPlayer from 'react-player'
 import { useSocket } from '../utils/SocketProvider'
 import peer from '../utils/peer'
 import { fetchUser } from '../utils/fetchUser'
-
+import { MdExpandCircleDown } from "react-icons/md";
 
 const Room = () => {
 
@@ -14,6 +14,72 @@ const Room = () => {
     const [remoteSocketId, setRemoteSocketId] = useState(null);
     const [myStream, setMyStream] = useState(null);
     const [remoteStream, setRemoteStream] = useState(null);
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const mic = new SpeechRecognition();
+    mic.continuous = true;
+    mic.interimResults = true;
+    mic.lang = 'en-US';
+
+    const notes = useRef('');
+    let [isScript, setIsScript] = useState(false);
+
+    let [isListening, setIsListening] = useState(false);
+    let [note, setNote] = useState(notes.current);
+    const [savedNotes, setSavedNotes] = useState([]);
+   
+    const toggleIsScript = () => {
+        isScript = !isScript;
+        setIsScript(isScript);
+    }
+
+    const toggleTranscript = () => {
+        isListening = !isListening;
+        setIsListening(isListening);
+    }
+
+    const handleListen = () => {
+        if (isListening) {
+            mic.start()
+            console.log('continue..')
+        } else {
+            mic.abort();
+            handleSaveNote();
+            console.log('ends..');
+            mic.onend = () => {
+                console.log('Stopped Mic on Click')
+            }
+        }
+    }
+    mic.onstart = () => {
+        console.log('Mics on')
+        }
+    mic.onsoundend = () => {
+        console.log('Mic Sound Stopped')
+    }
+    mic.onspeechend = () => {
+        console.log('Mic Speech Stopped')
+    }
+    mic.onresult = event => {
+        const transcript = Array.from(event.results)
+        .map(result => result[0])
+        .map(result => result.transcript)
+        .join('')
+        console.log(transcript);
+        setNote(transcript);
+        notes.current=transcript;
+        mic.onerror = event => {
+            console.log(event.error)
+        }
+    }
+      
+    
+      const handleSaveNote = () => {
+        setSavedNotes([...savedNotes, notes.current]);
+        note='';
+        notes.current='';
+        setNote('');
+      }
 
     const handleCallUser =  useCallback(async ()=>{
         const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
@@ -95,7 +161,23 @@ const Room = () => {
       }
     }, [handleNegoNeeded, sendIceCandidates]);
     
-    
+    useEffect(() => {
+        const interval = setInterval(() =>{
+          if(isListening){
+              handleListen();
+              toggleTranscript();
+              handleSaveNote(); 
+              toggleTranscript();
+          }
+        },5000);
+        return () => clearInterval(interval);
+    }, [note])
+      
+  
+    useEffect(() => {
+          console.log(isListening);
+          handleListen();
+    }, [isListening])
 
     useEffect(()=>{
         socket.on('user:joined', handleUserJoined);
@@ -154,10 +236,38 @@ const Room = () => {
                                 </div>
                             </>
                         )}
-                        <div className=''> 
+                        <div className='relative z-10'> 
                         
                          </div>
+
                     </div>
+                    <>
+                            <div className="flex items-center mt-[40vh] gap-2 flex-col">
+                                <div className="flex flex-col items-center">
+                                    <div className='flex gap-5'>
+                                        <button key={isListening} className='p-2 bg-white/30' onClick={()=>{toggleTranscript()}}>
+                                            {isListening ? "Transcript-On": "Transcript-Off"}
+                                        </button>
+                                    </div>
+                                    <div className='flex items-center mt-3' >
+                                        <p>Dialogue:</p>
+                                        {note?<p className='bg-black/10 p-2 text-md' key={note}>{note}</p>:""}
+                                    </div>
+                                    
+                                </div>
+                                <div className="relative mt-3">
+                                    <div className='flex flex-row gap-2 items-center justify-center'>
+                                        <h2 className='text-xl font-bold'>Whole Transcript : </h2>
+                                        <div className='cursor-pointer' onClick={()=>{toggleIsScript()}}>{isScript? <MdExpandCircleDown className='rotate-180' fontSize={30} /> : <MdExpandCircleDown fontSize={30} />}</div>
+                                    </div>
+                                    <div className='mt-2 leading-7'>
+                                        {isScript && savedNotes.map((n,index) => (
+                                            <p key={index}>{n}</p>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </>
                     
                     
                 </div>

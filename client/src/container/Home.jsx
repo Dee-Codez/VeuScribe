@@ -20,7 +20,6 @@ const Home = () => {
     const [myStream, setMyStream] = useState(null);
     let [audio, setAudio] = useState(true);
     let [video, setVideo] = useState(true);
-    let [isScript, setIsScript] = useState(false);
     
     const videoRef = useRef(null);
 
@@ -34,6 +33,8 @@ const Home = () => {
     mic.lang = 'en-US';
 
     const notes = useRef('');
+    let [isScript, setIsScript] = useState(false);
+
     let [isListening, setIsListening] = useState(false);
     let [note, setNote] = useState(notes.current);
     const [savedNotes, setSavedNotes] = useState([]);
