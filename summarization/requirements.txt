@@ -2,3 +2,4 @@ yake
 fastapi
 uvicorn
 requests
+gunicorn
