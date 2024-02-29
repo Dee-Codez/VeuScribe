@@ -1,4 +1,4 @@
 yake
 fastapi
 uvicorn
-request
+requests
