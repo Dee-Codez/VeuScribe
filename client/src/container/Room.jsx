@@ -18,7 +18,9 @@ const Room = () => {
     const videoRef = useRef(null);
     const remVideoRef = useRef(null);
     const [remJoined, setRemJoined] = useState(false);
+    const [summary, setSummary] = useState("");
     
+    const HuggingFaceKey = import.meta.env.VITE_HUGGINFACE_API_TOKEN
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const mic = new SpeechRecognition();
@@ -114,7 +116,7 @@ const Room = () => {
 
       const handleSaveNote = () => {
         if(note != ''){
-            setSavedNotes([...savedNotes, `You: ${note}`]);
+            setSavedNotes([...savedNotes, `${user.name}: ${note}`]);
         }
         
         note='';
@@ -201,6 +203,18 @@ const Room = () => {
         await peer.setLocalDescription(ans);
     },[])
 
+    const getSummary = useCallback(async(totNotes)=>{
+        console.log(JSON.stringify(`"inputs": ${totNotes}`))
+        const response = await fetch("https://api-inference.huggingface.co/models/gauravkoradiya/T5-Finetuned-Summarization-DialogueDataset",{
+                headers: { Authorization:`Bearer ${HuggingFaceKey}` },
+                method: "POST",
+            body: JSON.stringify(`"inputs": ${totNotes}`),
+            });
+        const result = await response.json();
+        console.log(result);
+        setSummary(result[0]['summary_text']);
+    },[]);
+
     useEffect(() => {
         const initAudioVideo = async () => {
           try {
@@ -234,6 +248,10 @@ const Room = () => {
               handleListen();
               if(remTranscript != ''){
                 setSavedNotes([...savedNotes, `${remName?remName:hostName}: ${remTranscript}`]);
+              }
+              const totNotes = savedNotes.join('\n');
+              if(totNotes){
+                getSummary(totNotes);
               }
               toggleTranscript();
               handleSaveNote(); 
@@ -309,8 +327,8 @@ const Room = () => {
                             {remJoined && (<p className='absolute bottom-0 right-0 pr-3 py-1 pl-1 bg-black/20'>{remName?remName:hostName}</p>)}
                         </div>
                     </div>
-                    <>
-                            <div className="flex items-center mt-10 gap-2 flex-col">
+                    <div className='flex w-screen justify-center gap-96'>
+                            <div className="flex items-center mt-10 gap-2 flex-col pb-10">
                                 <div className="flex flex-col items-center">
                                     <div className='flex gap-5'>
                                         <button key={isListening} className='p-2 bg-white/30' onClick={()=>{toggleTranscript()}}>
@@ -319,10 +337,10 @@ const Room = () => {
                                     </div>
                                     <div className='flex flex-col items-center mt-3' >
                                         <p>Dialogue:</p>
-                                        {note?<p className='bg-black/10 p-2 text-md' key={note}>
+                                        {note?<p className='bg-black/10 p-2 text-md max-w-[600px]' key={note}>
                                         You: {note}
                                         </p>:""}
-                                        {remTranscript && <p>
+                                        {remTranscript && <p className='bg-black/10 p-2 text-md max-w-[600px]'>
                                         {remName?remName:hostName}: {remTranscript}
                                         </p>}
                                     </div>
@@ -333,14 +351,22 @@ const Room = () => {
                                         <h2 className='text-xl font-bold'>Whole Transcript : </h2>
                                         <div className='cursor-pointer' onClick={()=>{toggleIsScript()}}>{isScript? <MdExpandCircleDown className='rotate-180' fontSize={30} /> : <MdExpandCircleDown fontSize={30} />}</div>
                                     </div>
-                                    <div className='mt-2 leading-7'>
+                                    <div className='mt-2 leading-7 max-w-[700px]'>
                                         {isScript && savedNotes.map((n,index) => (
                                             <p key={index}>{n}</p>
                                         ))}
                                     </div>
                                 </div>
                             </div>
-                    </>
+
+                        <div className='flex items-center gap-5 max-w-[600px] flex-col mt-10'>
+                        <p className='text-2xl font-bold'>Summary :</p>
+                        <div className='text-center'>
+                            {summary? summary: "Not Enough Dialogue To Summarize"}
+                        </div>
+                        </div>
+                    </div>
+                    
                     
                     
                 </div>
