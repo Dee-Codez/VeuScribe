@@ -5,7 +5,7 @@ import Login from './container/Login';
 import Home from './container/Home';
 import { fetchUser } from './utils/fetchUser';
 import Room from './container/Room';
-
+import NewLogin from './container/NewLogin';
 
 
 function App() {
@@ -20,7 +20,7 @@ function App() {
   return (
     <>
     <Routes>
-      <Route path='/login' element={<Login />}/>
+      <Route path='/login' element={<NewLogin />}/>
       <Route path='/' element={<Home />}/>
       <Route path='/room/:roomId' element={<Room />}/>
     </Routes>
