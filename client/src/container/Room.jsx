@@ -14,6 +14,11 @@ const Room = () => {
     const [remoteSocketId, setRemoteSocketId] = useState(null);
     const [myStream, setMyStream] = useState(null);
     const [remoteStream, setRemoteStream] = useState(null);
+    let [remTranscript, setRemTranscript] = useState("");
+    const videoRef = useRef(null);
+    const remVideoRef = useRef(null);
+    const [remJoined, setRemJoined] = useState(false);
+    
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const mic = new SpeechRecognition();
@@ -73,9 +78,45 @@ const Room = () => {
         }
     }
       
-    
+    // const toggleAudio = () => {
+    //     audio = !audio;
+    //     setAudio(audio);
+    //     getVideo(audio,video);
+    // }
+
+    // const toggleVideo = () => {
+    //     video = !video;
+    //     setVideo(video);
+    //     getVideo(audio,video);
+    // }
+
+    // const handleAudioVideo = (aud,vid) =>{
+    //     console.log("Before Toggle : ",audio,video);
+    //     {aud && toggleAudio()}
+    //     {vid && toggleVideo()}
+    //     console.log("After Toggle : ",audio,video);
+    //     getVideo(audio,video);
+    // }
+
+    // const getVideo = (aud=true,vid=true) => {
+        
+    //     navigator.mediaDevices.getUserMedia( {audio:aud,video:vid} )
+    //     .then(stream => {
+    //       let video = videoRef.current;
+    //       video.srcObject = stream;
+    //       video.play();
+    //     })
+    //     .catch(err => {
+    //       console.error("error:", err);
+    //     });
+    //   };
+
+
       const handleSaveNote = () => {
-        setSavedNotes([...savedNotes, notes.current]);
+        if(note != ''){
+            setSavedNotes([...savedNotes, `You: ${note}`]);
+        }
+        
         note='';
         notes.current='';
         setNote('');
@@ -123,7 +164,12 @@ const Room = () => {
 
         console.log(`Call accepted `);
         sendStreams();
-    },[sendStreams])
+    },[sendStreams]);
+
+    const handleRcvTranscript = useCallback(({transcript})=>{
+        console.log(`Transcript received ${transcript}`);
+        setRemTranscript(transcript);
+    },[]);
 
     useEffect(() => {
         peer.peer.addEventListener('track', async ev =>{
@@ -131,6 +177,9 @@ const Room = () => {
             console.log("Got Tracks");
             console.log(remoteStream);
             setRemoteStream(remoteStream[0]);
+            remVideoRef.current.srcObject = remoteStream[0];
+            remVideoRef.current.play();
+            setRemJoined(true);
         })
     }, [])
 
@@ -153,6 +202,22 @@ const Room = () => {
     },[])
 
     useEffect(() => {
+        const initAudioVideo = async () => {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({video: true,audio: true});
+            setMyStream(stream);
+            let vid = videoRef.current
+            vid.srcObject = stream;
+            vid.play();
+          } catch (err) {
+            console.log(err);
+          }
+        };
+        initAudioVideo();
+      }, []);
+    
+
+    useEffect(() => {
         peer.peer.addEventListener("icecandidate",sendIceCandidates);
       peer.peer.addEventListener('negotiationneeded', handleNegoNeeded);
       return () => {
@@ -161,23 +226,42 @@ const Room = () => {
       }
     }, [handleNegoNeeded, sendIceCandidates]);
     
+
     useEffect(() => {
         const interval = setInterval(() =>{
           if(isListening){
+              console.log(`transcript ${note} sent`);
               handleListen();
+              if(remTranscript != ''){
+                setSavedNotes([...savedNotes, `${remName?remName:hostName}: ${remTranscript}`]);
+              }
               toggleTranscript();
               handleSaveNote(); 
               toggleTranscript();
           }
         },5000);
         return () => clearInterval(interval);
-    }, [note])
-      
+    }, [note,remTranscript])
+
+    // useEffect(() => {
+    //     getVideo();
+    //     console.log("getVideo UseEffect called");
+    //   }, [videoRef]);
   
+    useEffect(() => {
+        socket.on("set:remote:transcript", handleRcvTranscript);
+        
+    }, [handleRcvTranscript, socket])
+
+    useEffect(() => {
+        socket.emit('remote:transcript',{to:remoteSocketId,script:note});
+    }, [note])
+    
+
     useEffect(() => {
           console.log(isListening);
           handleListen();
-    }, [isListening])
+    }, [isListening]);
 
     useEffect(()=>{
         socket.on('user:joined', handleUserJoined);
@@ -186,6 +270,7 @@ const Room = () => {
         socket.on('peer:nego:needed', handleNegoNeededIncoming);
         socket.on("peer:nego:final", handleNegoNeedFinal);
         socket.on("receive:icecandidate", handleRcvCandidate);
+        
         return () => {
             socket.off('user:joined', handleUserJoined);
             socket.off('incoming:call', handleIncomingCall);
@@ -194,7 +279,7 @@ const Room = () => {
             socket.off("peer:nego:final", handleNegoNeedFinal);
             socket.off("receive:icecandidate", handleRcvCandidate);
         }
-    },[socket, handleUserJoined, handleIncomingCall, handleCallAccepted, handleNegoNeededIncoming, handleNegoNeedFinal, handleRcvCandidate]);
+    },[socket, handleUserJoined, handleIncomingCall, handleCallAccepted, handleNegoNeededIncoming, handleNegoNeedFinal, handleRcvCandidate, handleRcvTranscript]);
   return (
     <div>
       <div className='flex justify-center'>
@@ -205,53 +290,41 @@ const Room = () => {
                     <div className='text-center '>{remoteSocketId? 'Connected' : 'Waiting For Others To Join'}</div>
                     {remoteSocketId && (
                         <div className='flex flex-row gap-5'>
-                            <div onClick={handleCallUser} className='px-4 py-2 border-2 border-green-400 rounded-md'>Join</div>
+                            <div onClick={handleCallUser} className='px-4 py-2 border-2 border-green-400 cursor-pointer rounded-md'>Join</div>
                             <button onClick={sendStreams} className='z-10 p-2 bg-black/30 cursor-pointer'>Send Stream</button>
                         </div>
                     )}
-                    <div className='flex md:flex-row flex-col gap-[500px]'>
-                        {myStream && (
-                            <>
-                                <div className='relative'>
-                                    
-                                    <div className='absolute top-0 left-0 z-10'>
-                                        <ReactPlayer style={{borderRadius: '5px', overflow: 'hidden'}} className=" overflow-hidden rounded-xl" playing muted url={myStream}/>
-                                        <div className='bg-black/20 px-2 py-1 absolute bottom-0 right-20 z-20'> 
-                                        {user?user.name:hostName}
-                                        </div>
-                                </div>
-                                </div>
-                            </>
-                        )}
-                        {remoteStream && (
-                            <>
-                                <div className='relative'>
-                                    
-                                    <div className='absolute top-0 left-0 z-10'>
-                                        <ReactPlayer className=" overflow-hidden rounded-xl" playing url={remoteStream}/>
-                                        <div className='bg-black/20 px-2 py-1 absolute bottom-0 right-20 z-20'> 
-                                            {remName?remName:hostName}
-                                        </div>
-                                </div>
-                                </div>
-                            </>
-                        )}
-                        <div className='relative z-10'> 
-                        
-                         </div>
-
+                    <div className='flex flex-row items-center gap-10'>
+                        {!remJoined && 
+                        <>
+                        <div className='w-[500px]'></div>
+                        </>
+                        }
+                        <div className='relative'>
+                            <video muted ref={videoRef} className='rounded-3xl w-[500px]'></video>
+                            <p className='absolute bottom-0 right-0 pr-3 py-1 pl-1 bg-black/20'>{user?user.name:hostName}</p>
+                        </div>
+                        <div className='relative'>
+                            <video key={remVideoRef} ref={remVideoRef} className='rounded-3xl w-[500px]'></video>
+                            {remJoined && (<p className='absolute bottom-0 right-0 pr-3 py-1 pl-1 bg-black/20'>{remName?remName:hostName}</p>)}
+                        </div>
                     </div>
                     <>
-                            <div className="flex items-center mt-[40vh] gap-2 flex-col">
+                            <div className="flex items-center mt-10 gap-2 flex-col">
                                 <div className="flex flex-col items-center">
                                     <div className='flex gap-5'>
                                         <button key={isListening} className='p-2 bg-white/30' onClick={()=>{toggleTranscript()}}>
                                             {isListening ? "Transcript-On": "Transcript-Off"}
                                         </button>
                                     </div>
-                                    <div className='flex items-center mt-3' >
+                                    <div className='flex flex-col items-center mt-3' >
                                         <p>Dialogue:</p>
-                                        {note?<p className='bg-black/10 p-2 text-md' key={note}>{note}</p>:""}
+                                        {note?<p className='bg-black/10 p-2 text-md' key={note}>
+                                        You: {note}
+                                        </p>:""}
+                                        {remTranscript && <p>
+                                        {remName?remName:hostName}: {remTranscript}
+                                        </p>}
                                     </div>
                                     
                                 </div>
@@ -267,7 +340,7 @@ const Room = () => {
                                     </div>
                                 </div>
                             </div>
-                        </>
+                    </>
                     
                     
                 </div>

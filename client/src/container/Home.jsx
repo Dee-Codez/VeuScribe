@@ -23,7 +23,7 @@ const Home = () => {
     
     const videoRef = useRef(null);
 
-    const socket = useSocket()
+    const socket = useSocket();
     const navigate = useNavigate();
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -152,7 +152,9 @@ const Home = () => {
 
     const handleJoinRoom = useCallback((data) => {
         const {name, room} = data;
+        videoRef.current.pause();
         navigate(`/room/${room}`)
+
     },[navigate])
 
     const initAudioVideo = useCallback(async()=>{

@@ -58,6 +58,11 @@ io.on('connection', (socket) => {
         socket.to(to).emit("receive:icecandidate",data.candidate);
     })
 
+    socket.on("remote:transcript",({to,script})=>{
+        console.log(`Script RCVD: ${script}`);
+        socket.to(to).emit("set:remote:transcript",{transcript:script})
+    });
+
     
 
     socket.on("query:call",({to,query})=>{
