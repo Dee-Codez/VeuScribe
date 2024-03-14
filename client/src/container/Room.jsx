@@ -4,6 +4,10 @@ import { useSocket } from '../utils/SocketProvider'
 import peer from '../utils/peer'
 import { fetchUser } from '../utils/fetchUser'
 import { MdExpandCircleDown } from "react-icons/md";
+import { useLocation } from 'react-router-dom';
+import { FaRegClipboard } from "react-icons/fa";
+
+
 
 const Room = () => {
 
@@ -19,6 +23,8 @@ const Room = () => {
     const remVideoRef = useRef(null);
     const [remJoined, setRemJoined] = useState(false);
     const [summary, setSummary] = useState("");
+
+    const {pathname} = useLocation();
     
     const HuggingFaceKey = import.meta.env.VITE_HUGGINFACE_API_TOKEN
 
@@ -79,40 +85,6 @@ const Room = () => {
             console.log(event.error)
         }
     }
-      
-    // const toggleAudio = () => {
-    //     audio = !audio;
-    //     setAudio(audio);
-    //     getVideo(audio,video);
-    // }
-
-    // const toggleVideo = () => {
-    //     video = !video;
-    //     setVideo(video);
-    //     getVideo(audio,video);
-    // }
-
-    // const handleAudioVideo = (aud,vid) =>{
-    //     console.log("Before Toggle : ",audio,video);
-    //     {aud && toggleAudio()}
-    //     {vid && toggleVideo()}
-    //     console.log("After Toggle : ",audio,video);
-    //     getVideo(audio,video);
-    // }
-
-    // const getVideo = (aud=true,vid=true) => {
-        
-    //     navigator.mediaDevices.getUserMedia( {audio:aud,video:vid} )
-    //     .then(stream => {
-    //       let video = videoRef.current;
-    //       video.srcObject = stream;
-    //       video.play();
-    //     })
-    //     .catch(err => {
-    //       console.error("error:", err);
-    //     });
-    //   };
-
 
       const handleSaveNote = () => {
         if(note != ''){
@@ -123,6 +95,7 @@ const Room = () => {
         notes.current='';
         setNote('');
       }
+
 
     const handleCallUser =  useCallback(async ()=>{
         const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
@@ -208,7 +181,7 @@ const Room = () => {
         const response = await fetch("https://api-inference.huggingface.co/models/gauravkoradiya/T5-Finetuned-Summarization-DialogueDataset",{
                 headers: { Authorization:`Bearer ${HuggingFaceKey}` },
                 method: "POST",
-            body: JSON.stringify(`"inputs": ${totNotes}`),
+            body: JSON.stringify(`${totNotes}`),
             });
         const result = await response.json();
         console.log(result);
@@ -301,10 +274,19 @@ const Room = () => {
   return (
     <div>
       <div className='flex justify-center'>
-        <div className='flex flex-col text-white items-center'>
+        <div className='flex flex-col text-black items-center'>
             <div className='mt-5'>
                 <div className='flex flex-col items-center gap-10'>
-                    <div className='text-3xl'>Meeting ID : {}</div>
+                    <div className='flex flex-row items-center gap-5'>
+                        <div className='text-3xl'>Meeting ID : {pathname.substring(6)}</div>
+                        <div className='text-white bg-black/20 rounded-full p-3 cursor-pointer' onClick={() => {
+                            navigator.clipboard.writeText(pathname.substring(6));
+                            alert('Meeting ID Copied');
+                            }}>
+                             <FaRegClipboard size={30} className='' />
+                        </div>
+                    </div>
+                    
                     <div className='text-center '>{remoteSocketId? 'Connected' : 'Waiting For Others To Join'}</div>
                     {remoteSocketId && (
                         <div className='flex flex-row gap-5'>
@@ -331,31 +313,38 @@ const Room = () => {
                             <div className="flex items-center mt-10 gap-2 flex-col pb-10">
                                 <div className="flex flex-col items-center">
                                     <div className='flex gap-5'>
-                                        <button key={isListening} className='p-2 bg-white/30' onClick={()=>{toggleTranscript()}}>
+                                        <button key={isListening} className='p-2 bg-[#8ab7e2] rounded-md text-white' onClick={()=>{toggleTranscript()}}>
                                             {isListening ? "Transcript-On": "Transcript-Off"}
                                         </button>
                                     </div>
-                                    <div className='flex flex-col items-center mt-3' >
-                                        <p>Dialogue:</p>
-                                        {note?<p className='bg-black/10 p-2 text-md max-w-[600px]' key={note}>
-                                        You: {note}
-                                        </p>:""}
-                                        {remTranscript && <p className='bg-black/10 p-2 text-md max-w-[600px]'>
-                                        {remName?remName:hostName}: {remTranscript}
-                                        </p>}
+                                    <div className='flex flex-col items-center mt-3' > 
+                                        {note &&(
+                                            <div className='p-5 bg-black/15 border border-[#8ab7e2]'>
+                                            <p className='text-md max-w-[600px]' key={note}>
+                                                You: {note}
+                                            </p>
+                                            {remTranscript && <p className='bg-black/10 p-2 text-md max-w-[600px]'>
+                                                {remName?remName:hostName}: {remTranscript}
+                                            </p>}
+                                            </div>
+                                        )}
                                     </div>
-                                    
                                 </div>
-                                <div className="relative mt-3">
+                                <div className="relative mt-3 ">
                                     <div className='flex flex-row gap-2 items-center justify-center'>
                                         <h2 className='text-xl font-bold'>Whole Transcript : </h2>
                                         <div className='cursor-pointer' onClick={()=>{toggleIsScript()}}>{isScript? <MdExpandCircleDown className='rotate-180' fontSize={30} /> : <MdExpandCircleDown fontSize={30} />}</div>
                                     </div>
-                                    <div className='mt-2 leading-7 max-w-[700px]'>
+                                    {isScript && savedNotes.length != 0 && 
+                                    <div>
+                                        <div className='mt-2 leading-7 p-2 bg-white border-2 border-[#8ab7e2] max-w-[700px]'>
                                         {isScript && savedNotes.map((n,index) => (
                                             <p key={index}>{n}</p>
                                         ))}
                                     </div>
+                                    </div>
+                                    }
+                                    
                                 </div>
                             </div>
 
