@@ -302,11 +302,11 @@ const Room = () => {
                         }
                         <div className='relative'>
                             <video muted ref={videoRef} className='rounded-3xl w-[500px]'></video>
-                            <p className='absolute bottom-0 right-0 pr-3 py-1 pl-1 bg-black/20'>{user?user.name:hostName}</p>
+                            <p className='absolute bottom-0 right-0 pr-3 py-1 pl-1 text-white rounded-br-3xl bg-black/20'>{user?user.name:hostName}</p>
                         </div>
                         <div className='relative'>
                             <video key={remVideoRef} ref={remVideoRef} className='rounded-3xl w-[500px]'></video>
-                            {remJoined && (<p className='absolute bottom-0 right-0 pr-3 py-1 pl-1 bg-black/20'>{remName?remName:hostName}</p>)}
+                            {remJoined && (<p className='absolute bottom-0 right-0 pr-3 py-1 pl-1 text-white rounded-br-3xl bg-black/20'>{remName?remName:hostName}</p>)}
                         </div>
                     </div>
                     <div className='flex w-screen justify-center gap-96'>
