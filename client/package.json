@@ -26,7 +26,8 @@
     "react-speech-recognition": "^3.10.0",
     "regenerator-runtime": "^0.14.1",
     "simple-peer": "^9.11.1",
-    "socket.io-client": "^4.7.4"
+    "socket.io-client": "^4.7.4",
+    "tldraw": "^2.0.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.55",

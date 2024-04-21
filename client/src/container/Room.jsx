@@ -6,8 +6,14 @@ import { fetchUser } from '../utils/fetchUser'
 import { MdExpandCircleDown } from "react-icons/md";
 import { useLocation } from 'react-router-dom';
 import { FaRegClipboard } from "react-icons/fa";
-
-
+import { Tldraw } from 'tldraw'
+import "../index.css"
+import { MdDraw } from "react-icons/md";
+import { IoMdCloseCircle } from "react-icons/io";
+import { AiOutlineAudio } from "react-icons/ai";
+import { AiOutlineAudioMuted } from "react-icons/ai";
+import { CiVideoOn } from "react-icons/ci";
+import { CiVideoOff } from "react-icons/ci";
 
 const Room = () => {
 
@@ -23,10 +29,17 @@ const Room = () => {
     const remVideoRef = useRef(null);
     const [remJoined, setRemJoined] = useState(false);
     const [summary, setSummary] = useState("");
-
+    let [isVideoOn, setIsVideoOn] = useState(true);
+    let [isAudioOn, setIsAudioOn] = useState(true);
     const {pathname} = useLocation();
     
     const HuggingFaceKey = import.meta.env.VITE_HUGGINFACE_API_TOKEN
+
+    const [isCanvasVisible, setIsCanvasVisible] = useState(false);
+
+    const toggleCanvas = () => {
+        setIsCanvasVisible(!isCanvasVisible);
+    };
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const mic = new SpeechRecognition();
@@ -98,11 +111,11 @@ const Room = () => {
 
 
     const handleCallUser =  useCallback(async ()=>{
-        const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+        const stream = await navigator.mediaDevices.getUserMedia({audio: isAudioOn, video: isVideoOn});
         const offer = await peer.getOffer();
         socket.emit("user:call",{to:remoteSocketId, offer});
         setMyStream(stream);
-    },[remoteSocketId, socket]);
+    },[isAudioOn, isVideoOn, remoteSocketId, socket]);
 
     const handleIncomingCall = useCallback(async({from,host,offer})=>{
         setRemoteSocketId(from);
@@ -121,9 +134,12 @@ const Room = () => {
 
     const sendStreams = useCallback(() => {
         for(const track of myStream.getTracks()) {
-            peer.peer.addTrack(track,myStream);
+          // Only add the track if it's enabled
+          if ((track.kind === 'audio' && isAudioOn) || (track.kind === 'video' && isVideoOn)) {
+            peer.peer.addTrack(track, myStream);
+          }
         }
-    },[myStream])
+      }, [myStream, isAudioOn, isVideoOn]);
 
     const sendIceCandidates = useCallback((data)=>{
         console.log(data,`icecandidates sent`);
@@ -145,6 +161,48 @@ const Room = () => {
         console.log(`Transcript received ${transcript}`);
         setRemTranscript(transcript);
     },[]);
+
+    const toggleVideo = async () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+          const enabled = videoRef.current.srcObject.getVideoTracks()[0].enabled;
+          if (enabled) {
+            videoRef.current.srcObject.getVideoTracks()[0].enabled = false;
+            isVideoOn = false;
+            setIsVideoOn(isVideoOn);
+          } else {
+            videoRef.current.srcObject.getVideoTracks()[0].enabled = true;
+            isVideoOn = true;
+            setIsVideoOn(isVideoOn);
+          }
+        }  
+        // Create a new stream with the updated constraints
+        const stream = await navigator.mediaDevices.getUserMedia({ video: isVideoOn, audio: isAudioOn });
+        // Set this stream as the new myStream
+        setMyStream(stream);
+        // Send the updated stream
+        sendStreams();
+      };
+      
+      const toggleAudio = async () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+          const enabled = videoRef.current.srcObject.getAudioTracks()[0].enabled;
+          if (enabled) {
+            videoRef.current.srcObject.getAudioTracks()[0].enabled = false;
+            isAudioOn = false;
+            setIsAudioOn(isAudioOn);
+          } else {
+            videoRef.current.srcObject.getAudioTracks()[0].enabled = true;
+            isAudioOn = true;
+            setIsAudioOn(isAudioOn);
+          }
+        // Create a new stream with the updated constraints
+        const stream = await navigator.mediaDevices.getUserMedia({ video: isVideoOn, audio: isAudioOn });
+        // Set this stream as the new myStream
+        setMyStream(stream);
+        // Send the updated stream
+        sendStreams();
+        }
+      };
 
     useEffect(() => {
         peer.peer.addEventListener('track', async ev =>{
@@ -195,7 +253,9 @@ const Room = () => {
             setMyStream(stream);
             let vid = videoRef.current
             vid.srcObject = stream;
-            vid.play();
+            vid.onloadedmetadata = function(e) {
+                vid.play();
+            };
           } catch (err) {
             console.log(err);
           }
@@ -347,7 +407,36 @@ const Room = () => {
                                     
                                 </div>
                             </div>
+                            <div className='absolute top-56 right-40 flex flex-col gap-8'>
+                                <button className='cursor-pointer p-2 bg-sky-500/50 rounded-xl ' onClick={toggleVideo}>
+                                    {isVideoOn ? <div className='flex items-center gap-2'><CiVideoOff size={30}/>Turn Video Off</div> : 
+                                    <div className='flex items-center gap-2'><CiVideoOn size={30}/>Turn Video On</div>}
+                                </button>
+                                <button className='cursor-pointer p-2 bg-sky-500/50 rounded-xl' onClick={toggleAudio}>
+                                    {isAudioOn ? <div className='flex items-center gap-2'><AiOutlineAudioMuted size={30}/>Mute</div> : 
+                                    <div className='flex items-center gap-2'><AiOutlineAudio size={30}/>Unmute</div>}
+                                </button>
 
+                                <button className='cursor-pointer p-2 bg-sky-500/50 rounded-xl ' onClick={toggleCanvas}>
+                                    {isCanvasVisible ? 
+                                    <div className='flex items-center gap-2'>
+                                        <IoMdCloseCircle size={30} />
+                                        Close Canvas
+                                    </div>
+                                    : 
+                                    <div className='flex items-center gap-2'>
+                                        <MdDraw size={30} />
+                                        Open Canvas
+                                    </div>
+                                    }
+                                </button>
+
+                            </div>
+                            {isCanvasVisible && (
+                                <div className='absolute bg-white bg-opacity-75 top-28 right-96 z-50 flex items-center justify-center' style={{ width: '70vw', height: '70vh' }}>
+                                    <Tldraw id="canvas" className='w-full h-full'/>
+                                </div>
+                            )}
                         <div className='flex items-center gap-5 max-w-[600px] flex-col mt-10'>
                         <p className='text-2xl font-bold'>Summary :</p>
                         <div className='text-center'>

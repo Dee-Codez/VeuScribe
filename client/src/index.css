@@ -1,3 +1,6 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@500;700;&display=swap");
+@import url("tldraw/tldraw.css");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,4 +12,8 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: "Inter";
 }
