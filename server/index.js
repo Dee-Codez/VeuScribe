@@ -5,8 +5,11 @@ const express = require('express');
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
+const cors = require('cors');
 
 const PORT = process.env.PORT || 8000;
+
+app.use(cors());
 
 app.get('/', (req, res) => {
     res.send('<h1>Hello world</h1>');

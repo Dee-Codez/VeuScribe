@@ -10,7 +10,7 @@ export const useSocket = () =>{
 
 export const SocketProvider = (props) => {
 
-    const socket = useMemo(() => io('https://veuscribe-backend.onrender.com'),[]);
+    const socket = useMemo(() => io('https://veuscribe-backend.vercel.app'),[]);
 
     return (
         <SocketContext.Provider value={socket}>
